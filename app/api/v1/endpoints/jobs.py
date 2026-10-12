@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, BackgroundTasks, status, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -11,6 +12,55 @@ from app.services.job_processor import process_bulk_job
 from app.core.logger import logger
 
 router = APIRouter()
+
+
+@router.get(
+    "/jobs",
+    response_model=List[JobStatusResponse],
+    summary="List Recent Bulk Generation Jobs",
+    description="Retrieves a list of recent bulk certificate generation jobs with real-time status and progress.",
+)
+def list_jobs(
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+) -> List[JobStatusResponse]:
+    """
+    Returns recent jobs ordered by creation date descending for dashboard tracking.
+    """
+    jobs = (
+        db.query(GenerationJob)
+        .order_by(GenerationJob.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    result = []
+    for job in jobs:
+        processed = job.successful + job.failed
+        pending = max(0, job.total - processed)
+        if job.total > 0:
+            raw_progress = (processed / job.total) * 100.0
+            progress = round(min(100.0, max(0.0, raw_progress)), 2)
+        else:
+            progress = 0.0
+
+        result.append(
+            JobStatusResponse(
+                job_id=job.id,
+                event_name=job.event_name,
+                certificate_title=job.certificate_title,
+                status=job.status,
+                total=job.total,
+                successful=job.successful,
+                failed=job.failed,
+                pending=pending,
+                progress=progress,
+                created_at=job.created_at,
+                completed_at=job.completed_at,
+            )
+        )
+    return result
 
 
 @router.post(

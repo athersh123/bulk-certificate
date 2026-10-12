@@ -40,12 +40,13 @@ python demo.py
 pytest -v
 ```
 
-### 3. Start the API Server & Swagger UI
+### 3. Start the API Server & Web UI Studio
 ```powershell
 uvicorn app.main:app --reload --port 8000
 ```
-- Open Swagger Documentation: **http://127.0.0.1:8000/docs**
-- Health Check: **http://127.0.0.1:8000/api/v1/health**
+- **BulkCert Studio Web UI**: **http://127.0.0.1:8000/** (or **/ui**)
+- **Interactive Swagger Docs**: **http://127.0.0.1:8000/docs**
+- **Service Health Check**: **http://127.0.0.1:8000/api/v1/health**
 
 ---
 

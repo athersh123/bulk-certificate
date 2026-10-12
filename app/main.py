@@ -1,7 +1,9 @@
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logger import logger
@@ -126,11 +128,50 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 app.include_router(api_router)  # Direct /jobs, /certificates and /health endpoints
 
+# Static files and Web Frontend mounting
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+FRONTEND_DIR.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
 
 @app.get("/", tags=["Root"])
-async def root():
+async def root(request: Request):
+    accept = request.headers.get("accept", "")
+    index_file = FRONTEND_DIR / "index.html"
+    if "text/html" in accept and index_file.exists():
+        return FileResponse(index_file)
     return {
         "message": f"Welcome to {settings.APP_NAME}",
         "docs": "/docs",
         "api_v1": settings.API_V1_PREFIX,
+        "ui": "/ui",
     }
+
+
+@app.get("/ui", tags=["Root"], include_in_schema=False)
+async def serve_ui():
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return JSONResponse(status_code=404, content={"message": "Frontend UI file not found"})
+
+
+@app.get("/style.css", include_in_schema=False)
+async def serve_root_css():
+    css_file = FRONTEND_DIR / "style.css"
+    if css_file.exists():
+        return FileResponse(css_file, media_type="text/css")
+    return JSONResponse(status_code=404, content={"message": "CSS not found"})
+
+
+@app.get("/app.js", include_in_schema=False)
+async def serve_root_js():
+    js_file = FRONTEND_DIR / "app.js"
+    if js_file.exists():
+        return FileResponse(js_file, media_type="application/javascript")
+    return JSONResponse(status_code=404, content={"message": "JS not found"})
+
+# Reload trigger
+
+
+

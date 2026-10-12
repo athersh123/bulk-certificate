@@ -120,3 +120,33 @@ def test_get_job_status_not_found(client):
     response = client.get("/jobs/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+
+
+def test_list_jobs_endpoint(client):
+    """
+    Tests listing recent jobs via GET /jobs.
+    """
+    payload = {
+        "event_name": "History Listing Test",
+        "certificate_title": "Certificate of Completion",
+        "recipients": [{"name": "Listed User", "email": "listed@example.com"}],
+    }
+    client.post("/jobs", json=payload)
+
+    response = client.get("/jobs?limit=10")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert "job_id" in data[0]
+    assert "event_name" in data[0]
+
+
+def test_frontend_serve_index(client):
+    """
+    Tests that browser GET / with text/html returns the frontend UI.
+    """
+    response = client.get("/", headers={"Accept": "text/html"})
+    assert response.status_code == 200
+    assert "BulkCert Studio" in response.text
+

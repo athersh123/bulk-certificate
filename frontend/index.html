@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BulkCert Studio — High-Performance Bulk Certificate Generator</title>
+  <meta name="description" content="Enterprise-grade asynchronous bulk certificate generation platform powered by FastAPI, ReportLab, and SQLAlchemy with real-time progress monitoring and fault isolation.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background Glow & Grid Orbs -->
+  <div class="bg-orb orb-primary" aria-hidden="true"></div>
+  <div class="bg-orb orb-secondary" aria-hidden="true"></div>
+  <div class="bg-grid-overlay" aria-hidden="true"></div>
+
+  <!-- Header Navigation -->
+  <header class="navbar" id="mainHeader">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <div class="brand-logo-glow">
+          <i class="fa-solid fa-certificate"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">BulkCert<span class="brand-accent">Studio</span></span>
+          <span class="brand-badge">FastAPI v1</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" role="tablist">
+        <button class="nav-tab-btn active" id="tabBtnGenerator" data-tab="generator" role="tab" aria-selected="true">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Create Batch</span>
+        </button>
+        <button class="nav-tab-btn" id="tabBtnMonitor" data-tab="monitor" role="tab" aria-selected="false">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Live Monitor</span>
+          <span class="nav-pill-badge" id="activeJobIndicator" style="display: none;">Live</span>
+        </button>
+        <button class="nav-tab-btn" id="tabBtnHistory" data-tab="history" role="tab" aria-selected="false">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Job History</span>
+        </button>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Backend Health Pill -->
+        <div class="health-pill" id="healthPill" title="Click to view API health details">
+          <span class="status-dot dot-checking" id="healthDot"></span>
+          <span class="health-label" id="healthLabel">Checking API...</span>
+          <span class="health-ping" id="healthPing">--ms</span>
+        </div>
+
+        <a href="/docs" target="_blank" rel="noopener noreferrer" class="btn-icon" id="docsLinkBtn" title="Swagger Interactive API Docs">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span class="btn-tooltip">Swagger UI</span>
+        </a>
+
+        <button class="btn-icon" id="settingsBtn" title="Backend Server Settings">
+          <i class="fa-solid fa-sliders"></i>
+          <span class="btn-tooltip">Settings</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="main-layout" id="mainLayout">
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: BATCH CREATOR & LIVE PREVIEW                          -->
+    <!-- ============================================================ -->
+    <section class="tab-pane active" id="paneGenerator" role="tabpanel">
+      <!-- Hero Banner -->
+      <div class="hero-strip">
+        <div class="hero-content">
+          <h1>Enterprise Bulk Certificate Generator</h1>
+          <p>Generate, render, and stream hundreds of professional PDF certificates asynchronously with per-recipient fault isolation in sub-second response times.</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-mini">
+            <span class="stat-mini-num" id="heroFastNum">&lt;15ms</span>
+            <span class="stat-mini-lbl">Queue Latency</span>
+          </div>
+          <div class="stat-mini-divider"></div>
+          <div class="stat-mini">
+            <span class="stat-mini-num" id="heroEngineNum">ReportLab</span>
+            <span class="stat-mini-lbl">Vector PDF Engine</span>
+          </div>
+          <div class="stat-mini-divider"></div>
+          <div class="stat-mini">
+            <span class="stat-mini-num" id="heroIsoNum">100%</span>
+            <span class="stat-mini-lbl">Fault Isolated</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="studio-grid">
+        <!-- Left Column: Form & Recipients Manager -->
+        <div class="card glass-card studio-form-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon-tag"><i class="fa-solid fa-file-signature"></i></span>
+              <div>
+                <h2>Batch Configuration</h2>
+                <p class="card-subtitle">Define certificate details and recipient dataset</p>
+              </div>
+            </div>
+            <!-- Quick Preset Loaders -->
+            <div class="dropdown-preset">
+              <button type="button" class="btn-secondary btn-sm" id="presetDropdownToggle">
+                <i class="fa-solid fa-bolt"></i> Sample Presets <i class="fa-solid fa-chevron-down chevron-icon"></i>
+              </button>
+              <div class="preset-menu" id="presetMenu">
+                <button type="button" class="preset-item" id="presetDemo3">
+                  <i class="fa-solid fa-user-group"></i>
+                  <div>
+                    <strong>FastAPI Workshop (3 Attendees)</strong>
+                    <small>Standard clean batch for quick testing</small>
+                  </div>
+                </button>
+                <button type="button" class="preset-item" id="presetDemo10">
+                  <i class="fa-solid fa-users"></i>
+                  <div>
+                    <strong>AI Cloud Summit (10 Attendees)</strong>
+                    <small>High throughput batch benchmark</small>
+                  </div>
+                </button>
+                <button type="button" class="preset-item" id="presetFault">
+                  <i class="fa-solid fa-shield-virus"></i>
+                  <div>
+                    <strong>Fault Isolation Demo (4 Attendees)</strong>
+                    <small>Tests graceful skip of invalid names</small>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <form id="certificateBatchForm" class="batch-form" novalidate>
+            <!-- Event Metadata Fields -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="eventNameInput" class="form-label">
+                  <span>Event / Course Name</span>
+                  <span class="required-star">*</span>
+                </label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-calendar-check input-icon"></i>
+                  <input 
+                    type="text" 
+                    id="eventNameInput" 
+                    class="form-input" 
+                    placeholder="e.g. FastAPI Cloud Mastery Bootcamp 2026"
+                    value="FastAPI Cloud Mastery Bootcamp 2026"
+                    required
+                    autocomplete="off"
+                  >
+                </div>
+              </div>
+
+              <div class="form-group flex-1">
+                <label for="certificateTitleInput" class="form-label">
+                  <span>Certificate Title Header</span>
+                  <span class="required-star">*</span>
+                </label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-award input-icon"></i>
+                  <input 
+                    type="text" 
+                    id="certificateTitleInput" 
+                    class="form-input" 
+                    placeholder="e.g. Certificate of Excellence"
+                    value="Certificate of Completion"
+                    required
+                    autocomplete="off"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Recipient Input Mode Tabs -->
+            <div class="recipients-section">
+              <div class="recipients-header">
+                <div class="recipients-title-count">
+                  <label class="form-label">Recipients Batch</label>
+                  <span class="count-badge" id="recipientCountBadge">3 recipients</span>
+                </div>
+
+                <div class="input-mode-toggle" role="group" aria-label="Recipient input mode">
+                  <button type="button" class="mode-btn active" id="modeTableBtn" data-mode="table">
+                    <i class="fa-solid fa-table-list"></i> Table View
+                  </button>
+                  <button type="button" class="mode-btn" id="modeCsvBtn" data-mode="csv">
+                    <i class="fa-solid fa-file-csv"></i> CSV / Paste
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mode 1: Interactive Table -->
+              <div class="mode-container active" id="modeTableContainer">
+                <div class="table-actions-bar">
+                  <button type="button" class="btn-ghost btn-xs" id="addRecipientRowBtn">
+                    <i class="fa-solid fa-plus"></i> Add Recipient
+                  </button>
+                  <button type="button" class="btn-ghost btn-xs text-danger" id="clearRecipientsBtn">
+                    <i class="fa-solid fa-trash-can"></i> Clear All
+                  </button>
+                </div>
+
+                <div class="recipients-table-wrapper">
+                  <table class="recipients-table" id="recipientsTable">
+                    <thead>
+                      <tr>
+                        <th class="th-num">#</th>
+                        <th class="th-name">Recipient Full Name</th>
+                        <th class="th-email">Email Address</th>
+                        <th class="th-actions">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recipientsTableBody">
+                      <!-- Dynamic rows generated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Mode 2: CSV / Raw Text Import -->
+              <div class="mode-container" id="modeCsvContainer">
+                <div class="csv-upload-dropzone" id="csvDropzone">
+                  <input type="file" id="csvFileInput" accept=".csv,text/csv,text/plain" class="visually-hidden">
+                  <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+                  <p class="dropzone-text">Drag & drop CSV file here, or <span class="dropzone-browse">browse</span></p>
+                  <span class="dropzone-hint">Format: Full Name, email@domain.com (one per line)</span>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="csvRawTextarea" class="form-label text-muted">Or Paste CSV / Tab-Delimited Text</label>
+                  <textarea 
+                    id="csvRawTextarea" 
+                    class="form-textarea code-font" 
+                    rows="6" 
+                    placeholder="Alice Smith, alice@example.com&#10;Bob Johnson, bob@example.com&#10;Carol Danvers, carol@example.com"
+                  ></textarea>
+                </div>
+
+                <div class="csv-actions">
+                  <button type="button" class="btn-secondary btn-sm" id="parseCsvBtn">
+                    <i class="fa-solid fa-arrow-turn-down"></i> Sync to Table
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Footer / Submission -->
+            <div class="form-footer">
+              <div class="submission-meta">
+                <span class="meta-tag"><i class="fa-solid fa-bolt"></i> Async 202 Enqueue</span>
+                <span class="meta-tag"><i class="fa-solid fa-shield-halved"></i> Thread Safe</span>
+              </div>
+
+              <button type="submit" class="btn-primary btn-lg" id="submitBatchBtn">
+                <span class="btn-spinner" id="submitSpinner" style="display: none;"></span>
+                <i class="fa-solid fa-paper-plane" id="submitIcon"></i>
+                <span id="submitBtnText">Dispatch Batch Job</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right Column: Live Certificate Visual Mockup -->
+        <div class="card glass-card studio-preview-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon-tag gold-icon"><i class="fa-solid fa-eye"></i></span>
+              <div>
+                <h2>Live Certificate Preview</h2>
+                <p class="card-subtitle">Real-time dynamic representation of ReportLab template</p>
+              </div>
+            </div>
+            <span class="status-pill status-ready">Vector Ready</span>
+          </div>
+
+          <!-- Dynamic Certificate Canvas Preview -->
+          <div class="certificate-mockup-wrapper">
+            <div class="certificate-mockup" id="certificateMockup">
+              <!-- Certificate Ornate Borders -->
+              <div class="cert-outer-border">
+                <div class="cert-inner-border">
+                  <div class="cert-corner corner-tl"></div>
+                  <div class="cert-corner corner-tr"></div>
+                  <div class="cert-corner corner-bl"></div>
+                  <div class="cert-corner corner-br"></div>
+
+                  <!-- Header Crest -->
+                  <div class="cert-crest">
+                    <i class="fa-solid fa-shield-halved"></i>
+                  </div>
+
+                  <!-- Certificate Title -->
+                  <div class="cert-header-title" id="certPreviewTitle">CERTIFICATE OF COMPLETION</div>
+                  <div class="cert-sub-text">THIS IS PROUDLY PRESENTED TO</div>
+
+                  <!-- Recipient Name -->
+                  <div class="cert-recipient-name" id="certPreviewName">Alice Smith</div>
+                  <div class="cert-divider-line"></div>
+
+                  <!-- Event Text -->
+                  <div class="cert-body-text">
+                    For successfully demonstrating mastery and completion of the comprehensive curriculum in
+                  </div>
+                  <div class="cert-event-name" id="certPreviewEvent">FastAPI Cloud Mastery Bootcamp 2026</div>
+
+                  <!-- Footer / Seal & Signature -->
+                  <div class="cert-footer">
+                    <div class="cert-footer-item">
+                      <div class="cert-sig-line"></div>
+                      <div class="cert-footer-label">ISSUED DATE</div>
+                      <div class="cert-footer-val" id="certPreviewDate">October 12, 2026</div>
+                    </div>
+
+                    <!-- Gold Seal SVG -->
+                    <div class="cert-gold-seal">
+                      <svg viewBox="0 0 100 100" class="seal-svg">
+                        <circle cx="50" cy="50" r="45" fill="url(#goldGradient)" stroke="#d97706" stroke-width="2"/>
+                        <circle cx="50" cy="50" r="38" fill="none" stroke="#78350f" stroke-dasharray="3,2" stroke-width="1.5"/>
+                        <polygon points="50,22 55,36 70,36 58,45 62,60 50,50 38,60 42,45 30,36 45,36" fill="#78350f"/>
+                        <defs>
+                          <radialGradient id="goldGradient" cx="30%" cy="30%" r="70%">
+                            <stop offset="0%" stop-color="#fef08a" />
+                            <stop offset="50%" stop-color="#f59e0b" />
+                            <stop offset="100%" stop-color="#b45309" />
+                          </radialGradient>
+                        </defs>
+                      </svg>
+                      <span class="seal-caption">VERIFIED</span>
+                    </div>
+
+                    <div class="cert-footer-item">
+                      <div class="cert-sig-line"></div>
+                      <div class="cert-footer-label">AUTHORIZED SIGNATURE</div>
+                      <div class="cert-footer-val">FastAPI Engineering Board</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview Helper Note -->
+          <div class="preview-footer-note">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Select any recipient in the table to preview their personalized certificate in real-time.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: LIVE JOB MONITOR HUD                                  -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" id="paneMonitor" role="tabpanel">
+      <!-- Monitor Header / Empty or Active State -->
+      <div id="monitorEmptyState" class="empty-state-card glass-card">
+        <div class="empty-state-icon">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+        <h3>No Job Selected for Monitoring</h3>
+        <p>Submit a batch job from the Create Batch studio, or choose a previous batch from the Job History tab.</p>
+        <button type="button" class="btn-primary mt-3" id="emptyStateCreateBtn">
+          <i class="fa-solid fa-plus"></i> Create New Batch
+        </button>
+      </div>
+
+      <div id="monitorActiveContainer" style="display: none;">
+        <!-- Job HUD Overview Banner -->
+        <div class="card glass-card monitor-hud-card">
+          <div class="hud-top">
+            <div class="hud-identity">
+              <span class="hud-badge" id="hudStatusBadge">PENDING</span>
+              <div>
+                <h2 id="hudEventName">FastAPI Cloud Mastery Bootcamp 2026</h2>
+                <div class="hud-meta">
+                  <span class="code-font" id="hudJobId">job-uuid-here</span>
+                  <button type="button" class="btn-copy" id="hudCopyJobIdBtn" title="Copy Job ID">
+                    <i class="fa-regular fa-copy"></i>
+                  </button>
+                  <span class="hud-sep">•</span>
+                  <span id="hudCreatedAt">Just now</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hud-quick-actions">
+              <button type="button" class="btn-secondary btn-sm" id="hudRefreshBtn">
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+              </button>
+              <button type="button" class="btn-primary btn-sm" id="hudDownloadAllBtn" disabled>
+                <i class="fa-solid fa-download"></i> Download Completed
+              </button>
+            </div>
+          </div>
+
+          <!-- Metric Cards & Progress Ring -->
+          <div class="hud-metrics-row">
+            <!-- Metric 1: Total -->
+            <div class="metric-card">
+              <div class="metric-icon-box bg-purple">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-value" id="hudTotalCount">0</span>
+                <span class="metric-label">Total Recipients</span>
+              </div>
+            </div>
+
+            <!-- Metric 2: Successful -->
+            <div class="metric-card">
+              <div class="metric-icon-box bg-green">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-value text-success" id="hudSuccessCount">0</span>
+                <span class="metric-label">Generated Successfully</span>
+              </div>
+            </div>
+
+            <!-- Metric 3: Failed -->
+            <div class="metric-card">
+              <div class="metric-icon-box bg-red">
+                <i class="fa-solid fa-circle-xmark"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-value text-danger" id="hudFailedCount">0</span>
+                <span class="metric-label">Failed (Isolated)</span>
+              </div>
+            </div>
+
+            <!-- Metric 4: Pending / In Flight -->
+            <div class="metric-card">
+              <div class="metric-icon-box bg-amber">
+                <i class="fa-solid fa-hourglass-half"></i>
+              </div>
+              <div class="metric-data">
+                <span class="metric-value text-warning" id="hudPendingCount">0</span>
+                <span class="metric-label">In Queue / Processing</span>
+              </div>
+            </div>
+
+            <!-- Progress Percentage Ring -->
+            <div class="progress-radial-card">
+              <div class="radial-ring-container">
+                <svg class="radial-svg" viewBox="0 0 36 36">
+                  <path class="radial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path class="radial-fill" id="hudRadialFill" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <div class="radial-center-text">
+                  <span class="radial-pct" id="hudPercentText">0%</span>
+                </div>
+              </div>
+              <span class="radial-sublabel" id="hudElapsedText">Elapsed: 0.0s</span>
+            </div>
+          </div>
+
+          <!-- Linear Gradient Bar -->
+          <div class="hud-bar-wrapper">
+            <div class="hud-bar-fill" id="hudProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Certificates Breakdown List Table -->
+        <div class="card glass-card mt-4">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon-tag"><i class="fa-solid fa-layer-group"></i></span>
+              <div>
+                <h2>Recipient Certificate Items</h2>
+                <p class="card-subtitle">Real-time per-item status and instant downloads</p>
+              </div>
+            </div>
+            <div class="filter-search-box">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input type="text" id="certFilterInput" class="form-input form-input-sm" placeholder="Filter recipients...">
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table" id="monitorCertTable">
+              <thead>
+                <tr>
+                  <th>Recipient Name</th>
+                  <th>Email</th>
+                  <th>Certificate ID</th>
+                  <th>Status</th>
+                  <th>Output / Actions</th>
+                </tr>
+              </thead>
+              <tbody id="monitorCertTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: JOB HISTORY & ARCHIVE                                 -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" id="paneHistory" role="tabpanel">
+      <div class="card glass-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-icon-tag"><i class="fa-solid fa-database"></i></span>
+            <div>
+              <h2>Batch Generation History</h2>
+              <p class="card-subtitle">All historical bulk jobs stored in database</p>
+            </div>
+          </div>
+          <div class="history-controls">
+            <div class="filter-search-box">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input type="text" id="historySearchInput" class="form-input form-input-sm" placeholder="Search event or ID...">
+            </div>
+            <button type="button" class="btn-secondary btn-sm" id="historyRefreshBtn">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="historyTable">
+            <thead>
+              <tr>
+                <th>Event & Certificate Title</th>
+                <th>Job ID</th>
+                <th>Status</th>
+                <th>Success / Total</th>
+                <th>Progress</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- MODALS & OVERLAYS                                            -->
+  <!-- ============================================================ -->
+
+  <!-- PDF Preview Modal -->
+  <div class="modal-backdrop" id="pdfPreviewModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-file-pdf text-danger"></i>
+          <div>
+            <h3 id="pdfModalTitle">Certificate PDF Preview</h3>
+            <span class="code-font text-muted text-xs" id="pdfModalCertId">--</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <a href="#" target="_blank" class="btn-secondary btn-sm" id="pdfModalDownloadBtn" download>
+            <i class="fa-solid fa-download"></i> Download PDF
+          </a>
+          <button type="button" class="btn-close" id="pdfModalCloseBtn" aria-label="Close modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body p-0">
+        <iframe id="pdfModalFrame" class="pdf-viewer-frame" title="Certificate PDF Viewer"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings / Server Config Modal -->
+  <div class="modal-backdrop" id="settingsModal" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-sliders"></i>
+          <div>
+            <h3>API Connection Settings</h3>
+            <p class="card-subtitle">Configure backend REST endpoints</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" id="settingsModalCloseBtn" aria-label="Close modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="apiBaseUrlInput" class="form-label">Backend API Base URL</label>
+          <input type="text" id="apiBaseUrlInput" class="form-input code-font" placeholder="http://127.0.0.1:8000">
+          <small class="form-hint">Leave blank or use empty string to use the current browser origin.</small>
+        </div>
+
+        <div class="server-info-box mt-3" id="serverInfoBox">
+          <div class="info-row">
+            <span class="info-lbl">Target Health Endpoint:</span>
+            <span class="code-font" id="infoHealthUrl">/api/v1/health</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Bulk Jobs Endpoint:</span>
+            <span class="code-font" id="infoJobsUrl">/api/v1/jobs</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Certificates Endpoint:</span>
+            <span class="code-font" id="infoCertsUrl">/certificates/{id}</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="settingsResetBtn">Reset to Default</button>
+        <button type="button" class="btn-primary" id="settingsSaveBtn">Save & Test Connection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
